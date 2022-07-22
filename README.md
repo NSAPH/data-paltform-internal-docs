@@ -16,6 +16,7 @@ Included documents:
 * [Administration](docs/Administration.md)
 * [Troubleshooting](docs/Troubleshooting.md)
 * [User onboarding](docs/Onboarding.md)
+* [PostgreSQL Installation](docs/postgres.md)
 * [Backing the database](docs/BackinUp.md)
 * [Discussion of backup options](docs/DatabaseBackupsDiscussion.md)
 
