@@ -11,6 +11,9 @@
     + [SSD disk is not mounted](#ssd-disk-is-not-mounted)
     + [Quota is full](#quota-is-full)
     + [User postgres does not have access to the disk](#user-postgres-does-not-have-access-to-the-disk)
+  * [Browser does not connect to Airflow or Superset](#browser-does-not-connect-to-airflow-or-superset)
+    + [Application is not running](#application-is-not-running)
+    + [Browser complains that connection is not secure](#browser-complains-that-connection-is-not-secure)
 
 <!-- tocstop -->
 
@@ -80,3 +83,16 @@ Check access with teh following commands:
     ll /n/dominici_ssd/Lab
 
 etc.
+           
+### Browser does not connect to Airflow or Superset 
+
+#### Application is not running
+
+See [restarting Superset](#restarting-superset) or 
+[restarting Airflow](#restarting-the-platform-including-airflow)
+
+#### Browser complains that connection is not secure
+
+Probably SSL certificate for nginx has expired. It has to be renewed once
+a year. See 
+[Administration](Administration.md#nginx-http-server-ssl-certificates)

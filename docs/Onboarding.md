@@ -1,0 +1,98 @@
+# Onboarding new users
+
+<!-- toc -->
+
+- [Expectations from users](#expectations-from-users)
+- [Giving a user access to FASSE](#giving-a-user-access-to-fasse)
+- [Creating a user in Superset](#creating-a-user-in-superset)
+- [[Optionally] For advanced users, give direct access to the database](#optionally-for-advanced-users-give-direct-access-to-the-database)
+  * [Create database user](#create-database-user)
+  * [Explain the user how to access database](#explain-the-user-how-to-access-database)
+    + [Preferred way for users to connect to teh database](#preferred-way-for-users-to-connect-to-teh-database)
+    + [Alternative way to connect](#alternative-way-to-connect)
+
+<!-- tocstop -->
+
+## Expectations from users
+
+* Users should be familiar with ssh, they should be able to generate
+    ssh keys and log in to the terminal
+    * Ability to use Unix command line is not strictly required
+* Users should be able to establish port forwarding via an ssh tunnel
+    This documentation provides enough information about how to do it 
+    on Mac or Linux, but Windows users should be able to do it themselves.
+* Users are supposed to be at least familiar with SQL
+* Advanced users with direct access to the database should know
+    database basics and be reasonably comfortable with SQL. While the
+    normal advanced user permissions should prevent them from damaging
+    the database it is still very easy to run a query that will take 
+    several months and will use 100% of CPU.
+
+## Giving a user access to FASSE
+
+1. Create a user account on FASSE
+2. Provide VPN access
+3. Ask Paul Edmon to add user to a group, so they can `ssh` to nsaph host 
+
+## Creating a user in Superset
+                               
+See [Creating new Superset app user](Administration.md#creating-new-superset-app-user)
+
+Once the user has been created they should:
+
+1. ssh to the nsaph host:
+
+       ssh -L8088:localhost:8088  $user@nsaph.rc.fas.harvard.edu
+
+2. Connect to Superset using the following URL: http://localhost:8088/login/ 
+   * FAS RC members can use direct URL: 
+       https://nsaph-superset.rc.fas.harvard.edu/login
+3. Immediately [change password](Administration.md#changing-superset-user-password-by-the-user).
+
+## [Optionally] For advanced users, give direct access to the database
+           
+### Create database user
+
+In any SQL tool (e.g. `psql` or DBVisualizer) execute the following commands:
+
+    CREATE user username CREATEDB  CREATEROLE LOGIN PASSWORD '111';
+    CALL public.grant_select('username');
+
+Ask the user to change teh password immediately after the first login with 
+the following command:
+
+    ALTER USER username PASSWORD '<new password>';
+
+The code of `grant_select` procedure is 
+[here](https://github.com/NSAPH-Data-Platform/nsaph-core-platform/blob/c4425b43435d1ea012b3de2299a176cb014857f3/src/sql/utils.sql#L76-L93)
+
+### Explain the user how to access database
+
+#### Preferred way for users to connect to teh database
+
+Use 
+[DBVisualizer](https://www.dbvis.com/) 
+or a similar tool (e.g. 
+[Table Plus](https://tableplus.com/)
+, 
+[Squirrel](https://squirrel-sql.sourceforge.io/)
+, etc.). There is
+also a built-in SQL tool into 
+[IntelliJ IDEA](https://www.jetbrains.com/idea/)
+which is Java and Python IDE.
+                           
+For DBVisualizer you will need a Pro license or trial.
+Connect using 
+[ssh tunnel](https://confluence.dbvis.com/display/UG120/Security#:~:text=our%20support%20portal.-,Using%20an%20SSH%20Tunnel,accessed%20through%20an%20SSH%20tunnel).
+
+      
+#### Alternative way to connect
+
+Use Apache Superset SQL Lab. Below are documentation on SQL Lab. 
+In my opinion, it is very much inferior to DB Visualizer, but 
+it can do the trick. Here are some documentation:
+
+* [Book](https://www.oreilly.com/library/view/apache-superset-quick/9781788992244/), 
+    available online at Harvard Library 
+* Shorter version in 
+    [ReadTheDocs](https://apache-superset.readthedocs.io/en/0.35.2/sqllab.html)

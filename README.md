@@ -13,6 +13,12 @@ Other internal documentation:
 
 Included documents:
 
+* [Administration](docs/Administration.md)
 * [Troubleshooting](docs/Troubleshooting.md)
+* [User onboarding](docs/Onboarding.md)
+* [Backing the database](docs/BackinUp.md)
+* [Discussion of backup options](docs/DatabaseBackupsDiscussion.md)
+
+
 
 
