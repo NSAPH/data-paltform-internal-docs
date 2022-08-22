@@ -1,0 +1,797 @@
+---
+role: roles::service::docker::web
+
+profiles::base::facts:
+  group:
+    value: fasse_compute
+
+roles::base::nessus: true
+local::disk: "/n/dominici_ssd"
+profiles::utility::mounts:
+  dominici-ssd:
+    name: /n/dominici_ssd
+    device: 'holyddnmds01-ib@o2ib4:holyddnmds02-ib@o2ib4:/holyddn/SSD/F/LABS/dominici_lab'
+    options: 'rw,defaults,_netdev,localflock'
+    fstype: 'lustre'
+  holystore_fasse:
+    name: /n/holystore01
+    device: 'holystore01mds01-ib@o2ib4:holystore01mds02-ib@o2ib4:/store01/F'
+    options: 'rw,defaults,_netdev,localflock'
+    fstype: 'lustre'
+
+
+local::lab_storage: "%{hiera('local::disk')}/Lab"
+
+## Network 2481	10.31.76.0/23	L3 Compute Ethernet DATA
+## Fassenets.      ip is 10.31.76.37
+##
+
+
+## ======== Porting from old box ===================
+
+roles::service::docker::web: true
+classes:
+  - fail2ban
+
+mount_staff_nfs_vol: false
+
+yum_proxy: 'http://holyyumproxy:8123'
+
+## Do I need to copy level 3 stuff?
+
+profiles::service::mount_ody: false
+profiles::firewall::purge_rules: false
+profiles::firewall::default_rules: true
+profiles::firewall::rules:
+  '0012 accept mosh from HPRC VPN net':
+    proto: 'udp'
+    chain: 'INPUT'
+    action: 'accept'
+    source: '10.255.12.0/26'
+    dport: '60000-61000'
+    state: 'NEW'
+  '0100 accept https traffic from anywhere':
+    proto: 'tcp'
+    chain: 'INPUT'
+    action: 'accept'
+    dport: 443
+    state: 'NEW'
+  '0200 accept ssh traffic from anywhere':
+    proto: 'tcp'
+    chain: 'INPUT'
+    action: 'accept'
+    dport: 22
+    state: 'NEW'
+  '0110 accept PostgreSQL connections from docker containers':
+    proto: 'tcp'
+    chain: 'INPUT'
+    action: 'accept'
+    source: '172.0.0.0/8'
+    dport: 5432
+    state: 'NEW'
+  '0120 accept All connections from docker containers':
+    proto: 'all'
+    iniface: 'docker0'
+    chain: 'INPUT'
+    action: 'accept'
+    state: 'NEW'
+  '0121 accept All connections from docker containers':
+    proto: 'all'
+    iniface: 'docker0'
+    chain: 'FORWARD'
+    action: 'accept'
+    state: 'NEW'
+
+
+
+ssh::server_options:
+  'Match Address 10.242.12.0/28,10.255.12.0/26,10.255.15.192/28,10.31.26.0/24':
+    PermitRootLogin: no
+    PubkeyAuthentication: yes
+    AllowGroups: rc_admin
+
+
+fasrc::resources:
+  file:
+    '/etc/systemd/system/docker.service.d/http-proxy.conf':
+      ensure: 'present'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+      require: 'File[/etc/systemd/system/docker.service.d/]'
+      content: |
+        [Service]
+        Environment="HTTP_PROXY=http://rcproxy.rc.fas.harvard.edu:3128"
+        Environment="HTTPS_PROXY=http://rcproxy.rc.fas.harvard.edu:3128"
+    '/etc/systemd/system/nginx.service.d/':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    '/etc/systemd/system/nginx.service.d/99-restart.conf':
+      ensure: 'present'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+      require: 'File[/etc/systemd/system/nginx.service.d/]'
+      content: "[Service]\nRestart=always\nRestartSec=5s\n"
+      before:
+        - 'Service[nginx]'
+    '/etc/systemd/system/postgresql-13.service.d':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    '/etc/systemd/system/postgresql-13.service.d/override.conf':
+      ensure: 'present'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+      require: 'File[/etc/systemd/system/postgresql-13.service.d/]'
+      content: |
+        [Service]
+        Environment=PGDATA=%{hiera('local::postgres::pgdata')}
+    '%{hiera("local::lab_storage")}/data':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0755'
+    '/data/':
+      ensure: 'link'
+      target: '%{hiera("local::lab_storage")}/data'
+    '/data/pgsql/':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0755'
+      require: 'File[/data/]'
+    '/data/pgsql/13/':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0755'
+      require: 'File[/data/pgsql/]'
+    '/data/pgsql/13/data/postgresql.custom.conf':
+      ensure: 'present'
+      owner: 'postgres'
+      group: 'postgres'
+      mode: '0600'
+      content: %{hiera("local::postgres::conf")}
+      before:
+        - 'Exec[Update PostgreSQL Config]'
+    '/data/pgsql/13/data/pg_hba.custom.conf':
+      ensure: 'present'
+      owner: 'postgres'
+      group: 'postgres'
+      mode: '0600'
+      content: %{hiera("local::postgres::pg_hba")}
+      before:
+        - 'Exec[Update PostgreSQL HBA Config]'
+    '%{hiera("local::lab_storage")}/opt/anaconda3':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    '%{hiera("local::lab_storage")}/opt/superset':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    '/opt/superset':
+      ensure: 'link'
+      target: '%{hiera("local::lab_storage")}/opt/superset'
+    '/opt/superset/superset':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+      require: 'File[/opt/superset]'
+    '/opt/superset/superset/postgresql':
+      ensure: 'directory'
+      recurse: true
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+      require: 'File[/opt/superset/superset]'
+    '/opt/superset/superset/postgresql/init':
+      ensure: 'directory'
+      recurse: true
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+      require: 'File[/opt/superset/superset/postgresql]'
+    '/opt/superset/docker-compose.yml':
+      ensure: 'present'
+      owner: 'root'
+      group: 'root'
+      mode: '0640'
+      require: 'File[/opt/superset]'
+      content: %{hiera("local::superset::docker-compose")}
+    '/opt/superset/superset/postgresql/init/db-init.sql':
+      ensure: 'present'
+      owner: 'root'
+      group: 'root'
+      mode: '0640'
+      require: 'File[/opt/superset/superset/postgresql/init]'
+      content: |
+        CREATE DATABASE superset;
+        CREATE USER superset WITH PASSWORD '%{hiera("local::secrets::superset::postgres_password")}';
+        GRANT ALL PRIVILEGES ON DATABASE "superset" to superset;
+    '/opt/superset/superset/superset-config.py':
+      ensure: 'present'
+      owner: 'root'
+      group: 'root'
+      mode: '0600'
+      require: 'File[/opt/superset/superset]'
+      content: %{hiera("local::superset::superset-config")}
+    '/scratch/docker':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'root'
+      mode: '0710'
+    '/scratch/cwl':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'rc_admin'
+      mode: '0775'
+    '/scratch/cwl/rundir':
+      ensure: 'directory'
+      owner: 'root'
+      group: 'rc_admin'
+      mode: '0775'
+      require: 'File[/scratch/cwl]'
+  exec:
+    '/usr/local/bin/docker-compose':
+      command: 'curl -L --proxy http://rcproxy.rc.fas.harvard.edu:3128/ -o /usr/local/bin/docker-compose http://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64 && chmod a+x /usr/local/bin/docker-compose'
+      creates: '/usr/local/bin/docker-compose'
+    'Set HTTP Proxy':
+      command: >
+        echo "# FAS RC HTTP PROXY Settings" >> /etc/profile &&
+        echo "export HTTP_PROXY=http://rcproxy.rc.fas.harvard.edu:3128" >> /etc/profile &&
+        echo "export HTTPS_PROXY=http://rcproxy.rc.fas.harvard.edu:3128" >> /etc/profile
+      unless: 'grep -q HTTP_PROXY /etc/profile'
+    'Installs PostgreSQL 13':
+      creates: '/usr/pgsql-13/'
+      environment:
+        - 'HTTP_PROXY=http://rcproxy.rc.fas.harvard.edu:3128'
+        - 'HTTPS_PROXY=http://rcproxy.rc.fas.harvard.edu:3128'
+        - 'PGDATA=%{hiera("local::postgres::pgdata")}'
+      command: >
+        yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm ;
+        yum install -y postgresql13 postgresql13-server postgresql13-contrib &&
+        semanage fcontext -a -t postgresql_db_t "%{hiera("local::postgres::pgdata")}/(/.*)?" &&
+        /usr/pgsql-13/bin/postgresql-13-setup initdb &&
+        systemctl enable postgresql-13 &&
+        systemctl start postgresql-13  &&
+        sed -i "s/#RemoveIPC=no/RemoveIPC=no/" /etc/systemd/logind.conf &&
+        systemctl restart systemd-logind.service
+        ## If we will not uncomment RemoveIPC=no we will be getting errors
+        ## 'could not remove shared memory segment "/PostgreSQL.***"'
+        ## See  https://support.tibco.com/s/article/Recommendation-about-RemoveIPC-parameter-in-Red-Hat-Enterprise-Linux-7-2
+      before:
+        - 'File[/data/pgsql/13/data/postgresql.custom.conf]'
+        - 'File[/data/pgsql/13/data/pg_hba.custom.conf]'
+        - 'Exec[Update PostgreSQL Config]'
+        - 'Exec[Update PostgreSQL HBA Config]'
+    'Update PostgreSQL Config':
+      unless: '%{hiera("local::fasrc::grep")}/postgresql.conf'
+      command: >
+        cp %{hiera("local::postgres::pgdata")}/postgresql.conf %{hiera("local::postgres::pgdata")}/postgresql.conf.orig &&
+        cp %{hiera("local::postgres::pgdata")}/postgresql.custom.conf %{hiera("local::postgres::pgdata")}/postgresql.conf &&
+        touch %{hiera("local::postgres::pgdata")}/last-update
+      require: 'File[/data/pgsql/13/data/postgresql.custom.conf]'
+      before:
+        - 'Exec[Restart PostgreSQL]'
+    'Update PostgreSQL HBA Config':
+      unless: '%{hiera("local::fasrc::grep")}/pg_hba.conf'
+      command: >
+        cat %{hiera("local::postgres::pgdata")}/pg_hba.custom.conf >> %{hiera("local::postgres::pgdata")}/pg_hba.conf &&
+        touch %{hiera("local::postgres::pgdata")}/last-update
+      require: 'File[/data/pgsql/13/data/pg_hba.custom.conf]'
+      before:
+        - 'Exec[Restart PostgreSQL]'
+    'Restart PostgreSQL':
+      onlyif: 'test -f %{hiera("local::postgres::pgdata")}/last-update'
+      command: >
+        systemctl restart postgresql-13 &&
+        rm %{hiera("local::postgres::pgdata")}/last-update
+    'Install Conda':
+      creates: '%{hiera("local::lab_storage")}/opt/anaconda3/bin/conda'
+      command: >
+        curl -L -O --proxy http://rcproxy.rc.fas.harvard.edu:3128/
+        https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh &&
+        bash Anaconda3-2020.11-Linux-x86_64.sh -b -p %{hiera("local::lab_storage")}/opt/anaconda3 &&
+        ln -s %{hiera("local::lab_storage")}/opt/anaconda3 /opt/anaconda3
+
+
+roles::service::docker::web::nginx: true
+roles::service::docker::web::letsencrypt: false
+
+profiles::utility::cron::job:
+  renew_cert:
+    command: 'certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start"'
+    user: root
+    minute: '13'
+    hour: '13'
+
+profiles::web::ssl::certs:
+  'nsaph.rc.fas.harvard.edu':
+    web_ssl_cert: "%{hiera('local::nsaph_nginx::web_ssl_cert')}"
+    web_ssl_key: "%{hiera('local::nsaph_nginx::web_ssl_key')}"
+
+
+nginx::nginx_vhosts:
+  'holy7c26607.rc.fas.harvard.edu':
+    rewrite_to_https: true
+    ssl: true
+    ssl_cert: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.crt"
+    ssl_key: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.key"
+    use_default_location: false
+    www_root: "/var/www/html"
+  'nsaph.rc.fas.harvard.edu':
+    rewrite_to_https: true
+    ssl: true
+    ssl_cert: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.crt"
+    ssl_key: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.key"
+    use_default_location: false
+    www_root: "/var/www/html"
+  'nsaph-superset.rc.fas.harvard.edu':
+    rewrite_to_https: true
+    ssl: true
+    ssl_cert: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.crt"
+    ssl_key: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.key"
+    use_default_location: false
+  'nsaph-airflow.rc.fas.harvard.edu':
+    rewrite_to_https: true
+    ssl: true
+    ssl_cert: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.crt"
+    ssl_key: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.key"
+    use_default_location: false
+    #location: "%{hiera('local::nginx::airflow')}"
+  'nsaph-portal.rc.fas.harvard.edu':
+    rewrite_to_https: true
+    ssl: true
+    ssl_cert: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.crt"
+    ssl_key: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.key"
+    use_default_location: false
+    www_root: "/var/www/html"
+  'nsaph-docs.rc.fas.harvard.edu':
+    rewrite_to_https: true
+    ssl: true
+    ssl_cert: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.crt"
+    ssl_key: "/etc/pki/tls/private/nsaph_rc_fas_harvard_edu.key"
+    use_default_location: false
+    www_root: "/var/www/html"
+
+local::nginx::proxy: &proxy_pass
+    ssl_only: true
+    location: '/'
+    proxy_redirect: 'off'
+    proxy_set_header:
+      - 'Host $host'
+      - 'X-Forwarded-Host $host:$server_port'
+      - 'X-Forwarded-Server $host'
+      - 'X-Forwarded-For $proxy_add_x_forwarded_for'
+      - 'X-Forwarded-Proto https'
+      - 'Upgrade $http_upgrade'
+      - 'Connection "upgrade"'
+    location_cfg_append:
+      proxy_http_version: 1.1
+
+nginx::nginx_locations:
+  airflow:
+    vhost: 'nsaph-airflow.rc.fas.harvard.edu'
+    proxy: 'http://localhost:8280'
+    <<: *proxy_pass
+  superset:
+    vhost: 'nsaph-superset.rc.fas.harvard.edu'
+    proxy: 'http://localhost:8088/'
+    <<: *proxy_pass
+
+
+
+
+## ============== Local ====================================
+
+local::fasrc: 'Custom FAS RC configuration'
+local::fasrc::grep: "grep -q -e '%{hiera('local::fasrc')}' %{hiera('local::postgres::pgdata')}"
+
+local::postgres::pgdata: '/data/pgsql/13/data/'
+
+local::postgres::conf: |
+  # %{hiera("local::fasrc")}
+  listen_addresses = '*'
+  work_mem = 8GB
+  maintenance_work_mem = 48GB
+  max_connections = 100                   # (change requires restart)
+  password_encryption = scram-sha-256             # md5 or scram-sha-256
+  shared_buffers = 8192MB                  # min 128kB
+  dynamic_shared_memory_type = posix      # the default is the first option
+  max_wal_size = 8GB
+  min_wal_size = 80MB
+  log_destination = 'stderr'              # Valid values are combinations of
+  logging_collector = on                  # Enable capturing of stderr and csvlog
+  log_directory = 'log'                   # directory where log files are written,
+  log_filename = 'postgresql-%a.log'      # log file name pattern,
+  log_truncate_on_rotation = on           # If on, an existing log file with the
+  log_rotation_age = 1d                   # Automatic rotation of logfiles will
+  log_rotation_size = 0                   # Automatic rotation of logfiles will
+  log_line_prefix = '%m [%p] '            # special values:
+  log_timezone = 'UTC'
+  datestyle = 'iso, mdy'
+  timezone = 'UTC'
+  lc_messages = 'en_US.UTF-8'                     # locale for system error message
+  lc_monetary = 'en_US.UTF-8'                     # locale for monetary formatting
+  lc_numeric = 'en_US.UTF-8'                      # locale for number formatting
+  lc_time = 'en_US.UTF-8'                         # locale for time formatting
+  default_text_search_config = 'pg_catalog.english'
+
+local::postgres::pg_hba: |
+  # %{hiera("local::fasrc")}
+  host    all             all             10.31.26.11/32            scram-sha-256
+  host    all             all             172.0.0.0/8            scram-sha-256
+  host    all             all             10.255.12.0/26          scram-sha-256
+
+# local::auditbeat::auditrules::level3: | pulled in from
+# https://gitlab-int.rc.fas.harvard.edu/puppet/puppet/-/blob/production/hieradata/RedHat_7.yaml#L185
+
+local::nsaph_nginx::web_ssl_cert: >
+  ENC[PKCS7,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]
+
+
+local::nsaph_nginx::web_ssl_key: >
+  ENC[PKCS7,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
+  iMv6NgSRU+h6I5A=]
+
+local::es_passwd: >
+  ENC[PKCS7,MIIBmQYJKoZIhvcNAQcDoIIBijCCAYYCAQAxggEhMIIBHQIBADAFMAACAQEw
+  DQYJKoZIhvcNAQEBBQAEggEAwv6su11NYc91gu9aXkUj11Nm+ot1DErlAOvC
+  gVd9jDhrZqdDuxH1MYaskO0F/trTjlw0Tk9bGFKfCxYGmrrWDAq4p4I6Cz7r
+  pBPlaEKBj0aqt4AstWhKE2gkPbpQgMcW9zOKRNBPOT4VjpMR+Gz3hI5Ljv1j
+  Jsg40nzA926epGyHCl8O4TfLb6s5Z1xd+3QJZTgiiaezrhwsh9fu3dlkz2PY
+  6Sev3s30PUlORvxUxMyuriWQ8aE3dQ9qEA/5ukTgR1cM5gbi4uKcAnL0Fkpu
+  +CkH/87sWJYwv1A2v+sbOKoIoeQ//VxqpzwojjKmKkL7Yp/3p+znz6bYg/fi
+  /PHBnDBcBgkqhkiG9w0BBwEwHQYJYIZIAWUDBAEqBBBE5ER4xtyjQr3xGdvz
+  4DSCgDB4bMAHBwftvHYYa+17tumzLUlyK4zWYXFDXlkIFZHorIioRTzRmARM
+  hWsWnNt2Z7w=]
+
+local::nginx::airflow: |
+  / {
+      proxy_pass http://localhost:8280;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Host $host:$server_port;
+      proxy_set_header X-Forwarded-Server $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_redirect off;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+  }
+
+local::superset::superset-config: |
+  import os
+
+  from cachelib import RedisCache
+
+  MAPBOX_API_KEY = %{hiera("local::secrets::superset::map_box_api_key")}
+  CACHE_CONFIG = {
+      'CACHE_TYPE': 'redis',
+      'CACHE_DEFAULT_TIMEOUT': 300,
+      'CACHE_KEY_PREFIX': 'superset_',
+      'CACHE_REDIS_HOST': 'redis',
+      'CACHE_REDIS_PORT': 6379,
+      'CACHE_REDIS_DB': 1,
+      'CACHE_REDIS_URL': 'redis://redis:6379/1'}
+
+  SQLALCHEMY_DATABASE_URI = \
+      'postgresql+psycopg2://superset:superset@172.17.0.1:5432/superset'
+  SQLALCHEMY_TRACK_MODIFICATIONS = True
+  SECRET_KEY = 'thisISaSECRET_1234'
+
+  class CeleryConfig(object):
+      BROKER_URL = 'redis://redis:6379/0'
+      CELERY_IMPORTS = ('superset.sql_lab', )
+      CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+      CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+
+  CELERY_CONFIG = CeleryConfig
+  RESULTS_BACKEND = RedisCache(
+      host='redis',
+      port=6379,
+      key_prefix='superset_results'
+  )
+
+local::superset::docker-compose: |
+  version: '3'
+  services:
+    redis:
+      image: redis
+      restart: always
+      volumes:
+        - redis:/data
+    superset:
+      image: amancevice/superset:latest
+      restart: always
+      depends_on:
+        - redis
+      environment:
+        MAPBOX_API_KEY: %{hiera("local::secrets::superset::map_box_api_key")}
+      ports:
+        - "8088:8088"
+      volumes:
+        - ./superset:/etc/superset
+    worker:
+      image: amancevice/superset:latest
+      restart: always
+      depends_on:
+        - redis
+      environment:
+        MAPBOX_API_KEY: %{hiera("local::secrets::superset::map_box_api_key")}
+      volumes:
+        - ./superset:/etc/superset
+      command: "celery worker --app=superset.tasks.celery_app:app"
+  volumes:
+    redis: {}
+
+local::secrets::superset::postgres_password: >
+    ENC[PKCS7,MIIBeQYJKoZIhvcNAQcDoIIBajCCAWYCAQAxggEhMIIBHQIBADAFMAACAQEw
+    DQYJKoZIhvcNAQEBBQAEggEAQW22joOQWzYoSu6n+8sUQ9QUl79Wuogo2Zak
+    pSsbip0aKHrkhRoCDHEVSKou6x5fC0vfnAyYvc0BVR9VtU6uFDxf+Ct+Sgge
+    pg022bW+1lVDOjBdRRcpLLhAmIHguQiWmApdGP86bSPguOiqk9AG804f0cFM
+    liC07fBC8zaDl+EbQR/Sbhadokujs454jg9I8FGaQ54GMXMhEq4XYEaMBYhX
+    danR2+hRHCKsmpsQtUSqb4jPUZh4agxI3KZFuHoqnTA+CvWZ8UtBNgKlKshu
+    mSJyfGpCHbeJUZuvGaQJMp+ZwO9qp7dVtNoza9S+Gxbo3XGNKZujxG8T5+Es
+    oEB4LTA8BgkqhkiG9w0BBwEwHQYJYIZIAWUDBAEqBBCm3b3MWPrFLy5254GH
+    Scf5gBDiRQodG74hSz3hrppTSTIH]
+
+local::secrets::superset::map_box_api_key: >
+    ENC[PKCS7,MIIBygYJKoZIhvcNAQcDoIIBuzCCAbcCAQAxggEhMIIBHQIBADAFMAACAQEw
+    DQYJKoZIhvcNAQEBBQAEggEAc/uyB6ALdUbiP6ghL4qtAU1pElsi5rSzYr6R
+    xvGRTytHGvIHdjjWzRzn5mCU+gX2fmzCaMIL1xXkZBjHAcoTEjgF3aIhEUOt
+    RMSoLHX6987Pa8kDm9voB7L3fINHBkbglUpXM91GPEYxmCNrn54QtYnFpvWg
+    3jnHnKpvtaQ2wDD0dc/Yl2IGfNB4tQHkdYQ4ydFZQLJAyxtvd+qKiv9DKbtQ
+    G8Pw0OHOkXquTexRtgHNWRTIJJCWQor+SbJDHv/6BDp+ku95XRFtyoFmSdwl
+    /RBnhRNTFI/ug/kTvpCv6b9eh3uy5pEGj8YWLqrzg+IVNw0aIaTlq+Q2R6hj
+    Hxz88DCBjAYJKoZIhvcNAQcBMB0GCWCGSAFlAwQBKgQQAFwL37gBNc4GqQlc
+    9gmzo4BgmYYrXLsSuGaFVxf+t7DOeqKj4DrTegKNJN9TzP1FCzw9Z8dhlZgE
+    6pLLgPUKUZ0M5pM154NCXwRwXLotOAQXmNMc8aHlvBVqYuDaL4a3cX99tTF4
+    AtebBx6MkOe7VcHb]

@@ -114,13 +114,13 @@ are configured in
 puppet 
 using
 `nginx::nginx_vhosts` 
-[block](https://gitlab-int.rc.fas.harvard.edu/puppet/puppet/-/blob/production/hieradata/hosts/holy7c26607.yaml#L317-358)
+[block](../puppet/hieradata/hosts/holy7c26607.yaml#L317-358)
 and
 `nginx::nginx_locations`
-[block](https://gitlab-int.rc.fas.harvard.edu/puppet/puppet/-/blob/production/hieradata/hosts/holy7c26607.yaml#L375-383).
+[block](../puppet/hieradata/hosts/holy7c26607.yaml#L375-383).
 The latter uses _Proxy Pass_ defined in
 `local::nginx::proxy: &proxy_pass`
-[block](https://gitlab-int.rc.fas.harvard.edu/puppet/puppet/-/blob/production/hieradata/hosts/holy7c26607.yaml#L360-373).
+[block](../puppet/hieradata/hosts/holy7c26607.yaml#L360-373).
 
 
                  
@@ -145,7 +145,7 @@ We use InCommon multi-domain certificate.
 
 2. Follow [Generate CSR and Install SSL cert](https://docs-int.rc.fas.harvard.edu/generate-csr-and-ssl-cert/)
   to generate a [MULTI-DOMAIN CSR](https://docs-int.rc.fas.harvard.edu/generate-csr-and-ssl-cert/#GENERATE_A_MULTI-DOMAIN_CSR).
-3. Update host [puppet file](https://gitlab-int.rc.fas.harvard.edu/puppet/puppet/-/blob/production/hieradata/hosts/holy7c26607.yaml#L432-677).
+3. Update host [puppet file](../puppet/hieradata/hosts/holy7c26607.yaml#L432-677).
 
 4. Run puppet on host to bring the updates.
 5. You might need to restart nginx:
