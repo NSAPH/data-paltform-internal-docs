@@ -16,9 +16,9 @@ Customized database settings are defined in the following files:
 
 | File | Path on the host | Content in the puppet host file |
 |------|------------------|---------------------------------|
-| Service `override.conf` | `/etc/systemd/system/postgresql-14.service.d/override.conf` | [block](../puppet/hieradata/hosts/holy7c26607.yaml#L119-127)|
-| Overrides for `postgresql.conf` | `/data/pgsql/14/data/postgresql.override.conf` | [block](../puppet/hieradata/hosts/holy7c26607.yaml#L395-421) |
-| Overrides for `pg_hba` | `/data/pgsql/14/data/pg_hba.custom.conf` | [block](../puppet/hieradata/hosts/holy7c26607.yaml#L423-427) |
+| Service `override.conf` | `/etc/systemd/system/postgresql-14.service.d/override.conf` | [block](../puppet/hieradata/hosts/holy7c26607.yaml#L125-L133)|
+| Overrides for `postgresql.conf` | `/data/pgsql/14/data/postgresql.override.conf` | [block](../puppet/hieradata/hosts/holy7c26607.yaml#L154-L161); [content of local::postgres::conf](../puppet/hieradata/hosts/holy7c26607.yaml#L401-L427) |
+| Overrides for `pg_hba` | `/data/pgsql/14/data/pg_hba.custom.conf` | [block](../puppet/hieradata/hosts/holy7c26607.yaml#L162-L169); [content of local::postgres::pg_hba](../puppet/hieradata/hosts/holy7c26607.yaml#L429-L433) |
 
 ## Location
 
