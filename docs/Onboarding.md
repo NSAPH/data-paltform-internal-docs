@@ -32,7 +32,10 @@
 
 1. Create a user account on FASSE
 2. Provide VPN access
-3. Ask Paul Edmon to add user to a group, so they can `ssh` to nsaph host 
+3. Open a ticket to be inculded in PAM access to holy7c26607.rc.fas.harvard.edu 
+   (srv-holy7c26607-pam)
+4. Send an approval e-mail from PI (Danielle or Francesca) to Warren Frame   
+5. [Obsolted?]Ask Paul Edmon to add user to a group, so they can `ssh` to nsaph host 
 
 ## Creating a user in Superset
                                
