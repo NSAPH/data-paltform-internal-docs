@@ -68,6 +68,16 @@ Superset uses user `superset` to communicate with teh database.
 Database password for user superset is stored in
 [FAS RC vault](https://vault.rc.fas.harvard.edu/ui/vault/secrets/kv/show/rse/nsaph/pg_users)
 
+> user `superset` is only used by Superset app for its internal purposes. It
+> should nto be used for accessing the database from SQL Lab! 
+> We normally use user `nsaph_superset` to access data in the database
+
+### Database user, that Superset uses to access data in the Database
+
+Username:  `nsaph_superset`
+Password:   stored in
+[FAS RC vault](https://vault.rc.fas.harvard.edu/ui/vault/secrets/kv/show/rse/nsaph/pg_users)
+
 ### Creating new Superset app user
                   
 A new superset user can be created using Superset app UI.
