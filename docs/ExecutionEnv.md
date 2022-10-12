@@ -13,7 +13,7 @@ For production mode and for running CWL pipelines using either
 Airflow user interface or command line, the best way is to run everything
 in docker container.
 
-See [](https://nsaph-data-platform.github.io/nsaph-platform-docs/common/platform-deployment/doc/Testing.html)
+See [Testing documentation](https://nsaph-data-platform.github.io/nsaph-platform-docs/common/platform-deployment/doc/Testing.html)
 for more information on running your code inside CWL-Airflow container.
 
 ## Conda environment
