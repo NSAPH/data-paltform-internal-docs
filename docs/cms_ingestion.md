@@ -1,6 +1,6 @@
 # Ingestion guide: Loading data into the `cms` and `medicaid/medicare` schemas
 
-It is good practice to test the ingestion pipelines when new CMS data is going to be added into the main DB. Testing the ingestion requires a sandbox DB that contains a small subset of data from the main DB.
+It is good practice to test the medicare pipeline when new CMS data is going to be added into the main DB. Testing requires a sandbox DB that contains a small subset of data from the main DB.
 
 Run the following SQL query in `superset` to print the number of entries in the sandbox DB.
 
@@ -15,11 +15,11 @@ select
     public.get_year('medicare_audit'::varchar, 'admissions'::varchar) InvalidAdmissionYears;
 ```
 
-## Testing the pipelines
+## Testing the medicare pipeline
 
 ### Extracting a sample of the CMS data
 
-The first steps is to extract a sample of the new data using the NSAPH utillities. Access the `nsaph host` in FASSE and create a folder `$HOME/testing_ingestion` to do the tesing. Inside the `HOME/testing_ingestion` folder create a `test_data` foler. Activate the `nsaph` environment.
+The first steps is to extract a sample of the new data using the NSAPH utillities. Access the `nsaph host` in FASSE and create a folder `$HOME/testing_ingestion` to do the tesing. Inside the `HOME/testing_ingestion` folder create a `test_data` folder. Activate the `nsaph` environment.
 
 ```
 cd $HOME/testing_ingestion/test_data
@@ -38,7 +38,7 @@ In this case, a sample of 0.05% is going to be created in `$HOME/testing_ingesti
 
 The next step is to execute the `medicare.cwl` pipeline using the sample data. 
 
-The `medicare.cwl` pipeline needs to be executed inside docker a container named `webserver`. To validate the existence of the container in the `nsaph host` use.
+The `medicare.cwl` pipeline needs to be executed inside a docker container named `webserver`. To validate the existence of the container in the `nsaph host` use.
 
 ```
 docker ps
@@ -59,7 +59,7 @@ echo /scratch/cwl/rundir/$reldir
 docker exec  webserver bash -c "source /root/anaconda/etc/profile.d/conda.sh && conda activate nsaph && mkdir -p ${rundir} && cd ${rundir} && cwl-runner --debug  --leave-tmpdir  /opt/airflow/project/cms/src/cwl/medicare.cwl --database /opt/airflow/project/sandbox.ini --connection_name sandbox --input $HOME/testing_ingestion/test_data"
 ```
 
-Remember that a container has an independent file structure from the `nsaph host`. `rundir` concatenated with `reldir` is a directory inside the docker container. `reldir` has a mapping to the `nsaph host`. The `sandbox.ini` file is stored inside the container to connect to the database. The input directory is mappend to the `nsaph host`.
+Remember that a container has an independent file structure from the `nsaph host`. `rundir` concatenated with `reldir` is a directory inside the docker container. `reldir` has a mapping to the `nsaph host`. The `sandbox.ini` file is stored inside the container to connect to the database. The input directory is mapped to the `nsaph host`.
 
 Run the bash file.
 
@@ -75,10 +75,23 @@ If the format of the new data satisfies the properties that are defined in the p
 
 Once the test is completed successfully, the `medicare.cwl` pipeline can be used to load new data into the main DB.
 
-The docker container that is housed in the `nsaph host` does not have direct access to the FASSE file system. As such, the raw data has to be copied from FASSE into the `nsaph host`
+The docker container that is housed in the `nsaph host` does not have direct access to the FASSE file system. As such, the raw data has to be copied from FASSE into the `nsaph host`. You can place it in the temporary folder of the `nsaph host` file system `/tmp/cms_data/yyyy`.
+
+Create a folder `$HOME/ingestion/` and a bash script `ingest_medicare.sh` inside that folder with the following content.
 
 ```
-
+#!/bin/bash 
+dd=`date +%Y-%m-%d-%H-%M`
+reldir=cms/medicare/add2018/${dd}
+rundir=/opt/airflow/cwl_rundir/$reldir
+echo /scratch/cwl/rundir/$reldir
+docker exec  webserver bash -c "source /root/anaconda/etc/profile.d/conda.sh && conda activate nsaph && mkdir -p ${rundir} && cd ${rundir} && cwl-runner --leave-tmpdir  /opt/airflow/project/cms/src/cwl/medicare.cwl --database /opt/airflow/project/database.ini --connection_name nsaph2 --input /tmp/cms_data/yyyy"
 ```
 
-Happy loading!
+Run the bash file.
+
+```
+bash ingest_medicare.sh
+```
+
+Happy data loading!
