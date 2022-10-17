@@ -19,7 +19,7 @@ select
 
 ### Extracting a sample of the CMS data
 
-The first steps is to extract a sample of the new data using the NSAPH utillities. Access the `nsaph host` in FASSE and create a folder `$HOME/testing_ingestion` to do the tesing. Inside the `HOME/testing_ingestion` folder create a `test_data` folder. Activate the `nsaph` environment.
+The first steps is to extract a sample of the new data using the NSAPH utilities. Access the `nsaph host` in FASSE and create a folder `$HOME/testing_ingestion` to do the tesing. Inside the `HOME/testing_ingestion` folder create a `test_data` folder. Activate the `nsaph` environment.
 
 ```
 cd $HOME/testing_ingestion/test_data
@@ -44,7 +44,7 @@ The `medicare.cwl` pipeline needs to be executed inside a docker container named
 docker ps
 ```
 
-You should see an `myairflow-conda` image named `webserver` in the printed list. 
+You should see an `myairflow-conda` image named `webserver` in the printed list. If `webserver` container is not in the list, accesss has to be granted by the owner. (A note for the owner: you can grant access with `usermod -a -G docker <username>`)
 
 > The code that is used to create the conda image is in the [/NSAPH-Data-Platform/nsaph-platform-deployment](https://github.com/NSAPH-Data-Platform/nsaph-platform-deployment) repository. The instructions to build the docker container are in the [Data Platform Internals](https://nsaph-data-platform.github.io/nsaph-platform-docs/common/platform-deployment/doc/index.html) section of the Data Platform documentation.
 
