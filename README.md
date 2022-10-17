@@ -21,6 +21,6 @@ Included documents:
 * [Discussion of backup options](docs/DatabaseBackupsDiscussion.md)
 * [Execution Environment](docs/ExecutionEnv.md)
 
-
-
-
+Working with the health database schemas:
+* [Ingestion guide: Loading data into the `cms` and `medicaid/medicare` schemas](docs/cms_ingestion.md)
+* [Redefining columns/variables in the `medicare/medicaid` schemas](docs/cols_redefinition.md)
