@@ -59,15 +59,17 @@ Once the user has been created they should:
 In any SQL tool (e.g. `psql` or DBVisualizer) execute the following commands:
 
     CREATE user username CREATEDB  CREATEROLE LOGIN PASSWORD '111';
-    CALL public.grant_select('username');
+    grant nsaph_admin to username;
 
-Ask the user to change teh password immediately after the first login with 
+Ask the user to change the password immediately after the first login with 
 the following command:
 
     ALTER USER username PASSWORD '<new password>';
 
 The code of `grant_select` procedure is 
 [here](https://github.com/NSAPH-Data-Platform/nsaph-core-platform/blob/c4425b43435d1ea012b3de2299a176cb014857f3/src/sql/utils.sql#L76-L93)
+                          
+See also [Administration guide](Administration.md#creating-new-database-user)
 
 ### Explain the user how to access database
 

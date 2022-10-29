@@ -96,3 +96,38 @@ See [restarting Superset](#restarting-superset) or
 Probably SSL certificate for nginx has expired. It has to be renewed once
 a year. See 
 [Administration](Administration.md#nginx-http-server-ssl-certificates)
+
+### Users can not select data from tables (permission denied)
+
+#### Users cannot select data in Superset app
+
+In general, this should nto happen, because superset uses a user
+`nsaph_superset` which is a superuser to communicate with the database.
+Security is enforced by Superset app that disables any *write* operations
+on the database (i.e. it only can call `execute_query()`, 
+not `execute_update()`).
+
+If this happens, explore user privileges for `nsaph_superset`, not for 
+actual app user!
+
+#### Users cannot select data in psql or another DB app
+
+Check that the user is a member of `nsaph_admin` role. The user should be 
+listed in the query results:
+
+    SELECT 
+        rolname, 
+        rolsuper, 
+        rolinherit, 
+        rolcanlogin, 
+        rolconfig,
+        oid 
+    FROM 
+        pg_catalog.pg_roles
+    WHERE pg_has_role(oid, 'nsaph_admin', 'member') AND not rolsuper;
+
+(Alternatively, add username to the `WHERE` clause)
+
+Then, execute the following command as a **_database superuser_**:
+                                                                  
+    CALL public.grant_select('nsaph_admin');

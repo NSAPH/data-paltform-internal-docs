@@ -42,13 +42,25 @@ or
 > This is not a recommended way!
                  
 ### Creating new database user
+                                                           
+Creating new database user is described in the
+[User Onboarding](Onboarding.md#create-database-user) documentation.
 
-Follow PostgreSQL documentation fr creating database user.
+In essence, we follow PostgreSQL documentation for creating database user.
 
-It is possible to use
+NSAPH users must be granted `nsaph_admin` role, i.e. they should become
+members of `nsaph_admin`. This is done with the following command:
+
+    grant nsaph_admin to username;
+
+
+It is also possible to use
 [grant_select](https://github.com/NSAPH-Data-Platform/nsaph-core-platform/blob/c4425b43435d1ea012b3de2299a176cb014857f3/src/sql/utils.sql#L76)
 SQL procedure to grant `SELECT` (i.e. read-only) privileges to all 
-NSAPH schemas.
+NSAPH schemas:
+
+    CALL public.grant_select('username');
+
 
 ## Superset
 
@@ -88,6 +100,18 @@ the `FILTER LIST`.
 
 Use any password for the user to log in for the first time and instruct
 the user to change the password immediately after the first login.
+
+Once the user has been created they should:
+
+1. ssh to the nsaph host:
+
+       ssh -L8088:localhost:8088  $user@nsaph.rc.fas.harvard.edu
+
+2. Connect to Superset using the following URL: http://localhost:8088/login/ 
+   * FAS RC members can use direct URL: 
+       https://nsaph-superset.rc.fas.harvard.edu/login
+3. Immediately [change password](#changing-superset-user-password-by-the-user).
+
 
 ### Changing superset user password
 
