@@ -5,11 +5,12 @@
 - [Expectations from users](#expectations-from-users)
 - [Giving a user access to FASSE](#giving-a-user-access-to-fasse)
 - [Creating a user in Superset](#creating-a-user-in-superset)
-- [[Optionally] For advanced users, give direct access to the database](#optionally-for-advanced-users-give-direct-access-to-the-database)
-  * [Create database user](#create-database-user)
+- [[Optionally] For advanced users](#optionally-for-advanced-users)
+  * [Create database user to directly access the database](#create-database-user-to-directly-access-the-database)
   * [Explain the user how to access database](#explain-the-user-how-to-access-database)
     + [Preferred way for users to connect to teh database](#preferred-way-for-users-to-connect-to-teh-database)
     + [Alternative way to connect](#alternative-way-to-connect)
+  * [Create a user in Airflow](#create-a-user-in-airflow)
 
 <!-- tocstop -->
 
@@ -45,16 +46,16 @@ Once the user has been created they should:
 
 1. ssh to the nsaph host:
 
-       ssh -L8088:localhost:8088  $user@nsaph.rc.fas.harvard.edu
+       ssh -L8088:localhost:8088 -L8280:localhost:8280 $user@nsaph.rc.fas.harvard.edu
 
 2. Connect to Superset using the following URL: http://localhost:8088/login/ 
    * FAS RC members can use direct URL: 
        https://nsaph-superset.rc.fas.harvard.edu/login
 3. Immediately [change password](Administration.md#changing-superset-user-password-by-the-user).
 
-## [Optionally] For advanced users, give direct access to the database
+## [Optionally] For advanced users
            
-### Create database user
+### Create database user to directly access the database
 
 In any SQL tool (e.g. `psql` or DBVisualizer) execute the following commands:
 
@@ -101,3 +102,29 @@ it can do the trick. Here are some documentation:
     available online at Harvard Library 
 * Shorter version in 
     [ReadTheDocs](https://apache-superset.readthedocs.io/en/0.35.2/sqllab.html)
+                                            
+### Create a user in Airflow
+                          
+Access Airflow using the following URL: http://localhost:8280/
+
+Users, connected to FAS HPRC VPN, can connect directly to:
+
+https://nsaph-airflow.rc.fas.harvard.edu/home
+
+Airflow allows to perform some designated administrative tasks, 
+such as giving other users read or write access to the tables. It 
+also allows triggering workflows from the UI and monitor the 
+high level workflow progress.
+
+> Note: users who should have only read access to the data
+> should not be given Airflow access.
+
+Log in to Airflow, select `Security` -> `List users` and click on the
+`+` sign to add another user. As the user to change their password
+after they log in.
+
+> Do not forget to make user *Active* by checking the corresponding
+> checkbox!
+
+Users should be given `User` and `Op` roles.
+
