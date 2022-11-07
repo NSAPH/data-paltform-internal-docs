@@ -1,5 +1,16 @@
 # Execution Environment
 
+<!-- toc -->
+
+- [Overview](#overview)
+- [Running in Docker container](#running-in-docker-container)
+  * [General notes on running pipelines in a docker container](#general-notes-on-running-pipelines-in-a-docker-container)
+  * [Mapping between directories on NSAPH host and in the docker container](#mapping-between-directories-on-nsaph-host-and-in-the-docker-container)
+- [Using Airflow](#using-airflow)
+- [Conda environment](#conda-environment)
+
+<!-- tocstop -->
+
 ## Overview
 
 For running production pipelines one shoudl use Docker container environment.
@@ -9,7 +20,7 @@ hence, one can use conda environment.
 
 ## Running in Docker container
   
-### general notes on running pipelines in a docker container 
+### General notes on running pipelines in a docker container 
 
 For production mode and for running CWL pipelines using either
 Airflow user interface or command line, the best way is to run everything
@@ -90,5 +101,4 @@ to activate NSAPH conda environment on NSAPH host.
 
 The environment YAML file is located in:
                                        
-    nsaph.rc.fas.harvard.edu:/data/environments/nsaph-2022-10-11.yml    
-                
+    nsaph.rc.fas.harvard.edu:/data/environments/nsaph-2022-10-11.yml
