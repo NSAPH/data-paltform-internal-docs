@@ -26,7 +26,7 @@ cd $HOME/testing_ingestion/test_data
 conda activate nsaph
 ```
 
-Identify the location of the new data. It should be stored in a subdirectory of `/n/dominici_nsaph_l3/Lab/data/ci3_d_medicare/original_data/cms_medicare/data/yyyy`. Use the `cms.tools.mcr_create_test_data` utility to create the sample.
+Identify the location of the new data. It should be stored in a subdirectory of `/n/dominici_nsaph_l3/Lab/data/ci3_d_medicare/original_data/cms_medicare/data/yyyy`. Use the `cms.tools.mcr_create_test_data` utility to create the sample. Note: you can only create the test data if there are .fts and .dat files available. For example, this wouldn't work for 2010 data because neither .fts or .dat files exist for that year.
 
 ```
 python -u -m cms.tools.mcr_create_test_data --in /n/dominici_nsaph_l3/Lab/data/ci3_d_medicare/original_data/cms_medicare/data/2018 --out . --selector 0.0005
@@ -61,13 +61,25 @@ docker exec  webserver bash -c "source /root/anaconda/etc/profile.d/conda.sh && 
 
 Remember that a container has an independent file structure from the `nsaph host`. `rundir` concatenated with `reldir` is a directory inside the docker container. `reldir` has a mapping to the `nsaph host`. The `sandbox.ini` file is stored inside the container to connect to the database. The input directory is mapped to the `nsaph host`.
 
-Run the bash file.
+Run the bash file. This might take a while to run. Therefore, you can either go with the below command,
 
 ```
 bash ingest_medicare.sh
 ```
 
+or,
+
+```
+nohup ./ingest_medicare.sh 2>&1 >  1medicare.log &
+```
+
+Once the pipeline finishes you should see message __Final process status is success__ in either terminal or the log file depending on which command you chose.
+
 If the format of the new data satisfies the properties that are defined in the pipeline. The pipeline should run smoothly. Once the process is complete, check the final number of entries in the sandbox DB using the query that is included in the beginning of the ingestion guide. The number of entries should have increased. Inconsistensies in column names or data types in the new data are examples of issues that may be encountered during the test.
+
+For docker related documentation, please see:
+* https://nsaph-data-platform.github.io/nsaph-platform-docs/common/platform-deployment/doc/UsefulCommands.html
+* https://github.com/NSAPH/data-paltform-internal-docs/blob/master/docs/ExecutionEnv.md#mapping-between-directories-on-nsaph-host-and-in-the-docker-container
 
 <!-- ### Fixing column name/data type issues -->
 
